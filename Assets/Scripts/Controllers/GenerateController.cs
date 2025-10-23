@@ -102,11 +102,17 @@ namespace ARMeshyDemo.Controllers
             _lastRefJpg = null;
             _lastRefTex = null;
 
-            yield return StartCoroutine(cameraCapture.CaptureJpgCoroutine((jpg, tex) =>
+            // Ask for a smaller JPG for upload (e.g. long side 1024) but keep a full-res Texture2D for tracking
+            const int UploadLongSide = 1024;
+
+            yield return StartCoroutine(cameraCapture.CaptureForTrackingAndUpload(
+            UploadLongSide,
+            (jpg, tex) =>
             {
-                _lastRefJpg = jpg;
-                _lastRefTex = tex;
+                _lastRefJpg = jpg;     // send this to Meshy
+                _lastRefTex = tex;     // use this (full-res) for AddImageFromTexture
             }));
+
 
             if (_cancelRequested) { Done("Cancelled."); yield break; }
 
