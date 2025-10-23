@@ -12,7 +12,7 @@ public class ARModelOrchestrator : MonoBehaviour
     [Header("Scene Refs")]
     public ARImageRuntimeManager arImageRuntime;
     public ARTrackedImageManager trackedImageManager;
-    public MeshyClient meshyClient;
+    public MeshyClient2 meshyClient2;
     public GameObject modelRoot;
     public GameObject loadingSpinnerPrefab;
 
@@ -46,9 +46,9 @@ public class ARModelOrchestrator : MonoBehaviour
 
     void Start()
     {
-        if (!arImageRuntime || !trackedImageManager || !meshyClient)
+        if (!arImageRuntime || !trackedImageManager || !meshyClient2)
         {
-            Debug.LogError("Assign ARImageRuntimeManager, ARTrackedImageManager, MeshyClient in Inspector.");
+            Debug.LogError("Assign ARImageRuntimeManager, ARTrackedImageManager, MeshyClient2 in Inspector.");
             enabled = false;
             return;
         }
@@ -137,7 +137,7 @@ public class ARModelOrchestrator : MonoBehaviour
         ShowSpinner(true);
 
         string taskId = null;
-        yield return meshyClient.CreateImageTo3DTask(
+        yield return meshyClient2.CreateImageTo3DTask(
             png,
             onTaskCreated: id => taskId = id,
             onError: err => { Debug.LogError(err); taskId = null; },
@@ -161,7 +161,7 @@ public class ARModelOrchestrator : MonoBehaviour
         }
 
         string glbUrl = null;
-        yield return meshyClient.PollTaskUntilReady(
+        yield return meshyClient2.PollTaskUntilReady(
             taskId,
             onGlbUrl: url => glbUrl = url,
             onError: err => { Debug.LogError(err); glbUrl = null; }
@@ -174,7 +174,7 @@ public class ARModelOrchestrator : MonoBehaviour
         }
 
         byte[] glbBytes = null;
-        yield return meshyClient.DownloadBytes(glbUrl, bytes => glbBytes = bytes, err => Debug.LogError(err));
+        yield return meshyClient2.DownloadBytes(glbUrl, bytes => glbBytes = bytes, err => Debug.LogError(err));
         if (glbBytes == null)
         {
             ShowSpinner(false);
@@ -327,7 +327,7 @@ public class ARModelOrchestrator : MonoBehaviour
         ShowSpinner(true);
 
         string taskId = null;
-        yield return meshyClient.CreateImageTo3DTask(
+        yield return meshyClient2.CreateImageTo3DTask(
             png,
             onTaskCreated: id => taskId = id,
             onError: err => { Debug.LogError(err); taskId = null; },
@@ -351,7 +351,7 @@ public class ARModelOrchestrator : MonoBehaviour
         }
 
         string glbUrl = null;
-        yield return meshyClient.PollTaskUntilReady(
+        yield return meshyClient2.PollTaskUntilReady(
             taskId,
             onGlbUrl: url => glbUrl = url,
             onError: err => { Debug.LogError(err); glbUrl = null; }
@@ -364,7 +364,7 @@ public class ARModelOrchestrator : MonoBehaviour
         }
 
         byte[] glbBytes = null;
-        yield return meshyClient.DownloadBytes(glbUrl, bytes => glbBytes = bytes, err => Debug.LogError(err));
+        yield return meshyClient2.DownloadBytes(glbUrl, bytes => glbBytes = bytes, err => Debug.LogError(err));
         if (glbBytes == null)
         {
             ShowSpinner(false);
