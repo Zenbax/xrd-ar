@@ -10,9 +10,11 @@ namespace ARMeshyDemo.AR
     /// <summary>
     /// Captures a full-resolution CPU image from ARCameraManager, returning:
     ///  • hi-res Texture2D (RGBA32, readable) for AR tracking
-    ///  • JPG bytes (optionally downscaled) for upload
+    ///  • JPG bytes (optionally downscaled) for upload.
     ///
-    /// It also forces the highest available camera configuration before capture.
+    /// Adds robust waiting after changing camera configuration and before
+    /// acquiring CPU frames, to avoid race conditions where the stream
+    /// briefly stops.
     /// </summary>
     public class CameraCapture : MonoBehaviour
     {
@@ -20,11 +22,14 @@ namespace ARMeshyDemo.AR
         [SerializeField] private ARCameraManager arCameraManager;
 
         [Header("Capture Options")]
-        [Tooltip("Force the highest camera resolution available before capturing.")]
+        [Tooltip("Force the highest available camera resolution before capturing.")]
         [SerializeField] private bool forceHighestResolution = true;
 
-        [Tooltip("Flip vertically to match ARCore camera orientation (usually correct).")]
+        [Tooltip("Flip vertically to match ARCore camera orientation (usually correct on Android).")]
         [SerializeField] private bool mirrorY = true;
+
+        [Tooltip("How long (seconds) to wait for the camera stream to provide a CPU image.")]
+        [SerializeField] private float cpuImageTimeoutSec = 2.0f;
 
         [Header("Encode")]
         [Range(1, 100)]
@@ -35,16 +40,18 @@ namespace ARMeshyDemo.AR
         /// <summary>
         /// Captures for tracking + upload.
         /// uploadLongSide:
-        ///   If > 0, downscale JPG so the long side equals this many pixels (saves bandwidth).
-        ///   If 0, upload full resolution.
+        ///   If > 0, downscale the JPG so the long side equals this many pixels (saves bandwidth).
+        ///   If 0, upload full resolution (larger upload).
         /// </summary>
-        public IEnumerator CaptureForTrackingAndUpload(int uploadLongSide, Action<byte[], Texture2D> onComplete)
+        public IEnumerator CaptureForTrackingAndUpload(
+            int uploadLongSide,
+            Action<byte[], Texture2D> onComplete)
         {
-            #if UNITY_EDITOR
+#if UNITY_EDITOR
             Debug.LogWarning("[CameraCapture] CPU capture doesn't run in Editor. Test on device.");
             onComplete?.Invoke(null, null);
             yield break;
-            #else
+#else
             if (arCameraManager == null)
             {
                 Debug.LogError("[CameraCapture] ARCameraManager is null.");
@@ -52,33 +59,36 @@ namespace ARMeshyDemo.AR
                 yield break;
             }
 
-            // Make sure camera permission & subsystem are ready
+            // 1) Ensure camera subsystem and permission are ready
             yield return StartCoroutine(EnsureCameraReady());
 
-            // Force highest camera resolution (once per session is enough, but cheap to call here)
+            // 2) Optionally force the highest camera configuration
             if (forceHighestResolution)
-                TrySetHighestCameraResolution();
-
-            // Try to acquire a CPU image this or next frame
-            if (!arCameraManager.TryAcquireLatestCpuImage(out XRCpuImage cpuImage))
             {
-                yield return null; // next frame
-                if (!arCameraManager.TryAcquireLatestCpuImage(out cpuImage))
-                {
-                    Debug.LogError("[CameraCapture] Could not acquire CPU image.");
-                    onComplete?.Invoke(null, null);
-                    yield break;
-                }
+                TrySetHighestCameraResolution();
+                // IMPORTANT: after changing configuration, the stream can briefly stop.
+                // Wait until we can actually acquire a CPU image again.
+                yield return StartCoroutine(WaitForCpuImageAvailable(cpuImageTimeoutSec));
             }
 
-            // Convert to RGBA32 at native resolution
+            // 3) Acquire a CPU image with a bounded timeout (works even if config wasn't changed)
+            XRCpuImage cpuImage;
+            if (!TryAcquireCpuImageWithTimeout(out cpuImage, cpuImageTimeoutSec))
+            {
+                Debug.LogError("[CameraCapture] Could not acquire CPU image (timeout).");
+                onComplete?.Invoke(null, null);
+                yield break;
+            }
+
+            // 4) Convert to RGBA32 at native resolution
             var conv = new XRCpuImage.ConversionParams
             {
-                inputRect         = new RectInt(0, 0, cpuImage.width, cpuImage.height),
-                outputDimensions  = new Vector2Int(cpuImage.width, cpuImage.height),
-                outputFormat      = TextureFormat.RGBA32,
-                transformation    = mirrorY ? XRCpuImage.Transformation.MirrorY
-                                            : XRCpuImage.Transformation.None
+                inputRect        = new RectInt(0, 0, cpuImage.width, cpuImage.height),
+                outputDimensions = new Vector2Int(cpuImage.width, cpuImage.height),
+                outputFormat     = TextureFormat.RGBA32,
+                transformation   = mirrorY
+                                    ? XRCpuImage.Transformation.MirrorY
+                                    : XRCpuImage.Transformation.None
             };
 
             var request = cpuImage.ConvertAsync(conv);
@@ -105,10 +115,13 @@ namespace ARMeshyDemo.AR
             trackingTex.Apply(updateMipmaps: false, makeNoLongerReadable: false);
             request.Dispose();
 
-            // Create JPG source (optionally downscale just for upload)
+            // 5) Build JPG for upload (optionally downscaled)
             Texture2D jpgSource = trackingTex;
             if (uploadLongSide > 0)
+            {
                 jpgSource = DownscaleLongSideGPU(trackingTex, uploadLongSide);
+                Debug.Log($"[CameraCapture] Downscaled upload to {jpgSource.width}x{jpgSource.height}");
+            }
 
             byte[] jpg = null;
             try
@@ -128,23 +141,24 @@ namespace ARMeshyDemo.AR
 
             Debug.Log($"[CameraCapture] Captured {w}x{h}; upload JPG = {jpg.Length / 1024} KB");
             onComplete?.Invoke(jpg, trackingTex);
-           #endif
+#endif
         }
 
-        /// <summary>
-        /// Wait until permission is granted and the camera subsystem is running.
-        /// </summary>
+        // --- Helpers ---------------------------------------------------------
+
+        /// <summary>Wait until the camera subsystem is running and (likely) permission granted.</summary>
         private IEnumerator EnsureCameraReady()
         {
-            // Wait a few frames for AR to boot up if needed
             float start = Time.realtimeSinceStartup;
+
+            // Wait for subsystem
             while (arCameraManager.subsystem == null || !arCameraManager.subsystem.running)
             {
                 if (Time.realtimeSinceStartup - start > 3f) break; // don't hang forever
                 yield return null;
             }
 
-            // Permission usually requested by AR Foundation automatically
+            // Permission is requested by AR Foundation automatically; give it a moment
             int tries = 0;
             while (!arCameraManager.permissionGranted && tries < 20)
             {
@@ -153,9 +167,7 @@ namespace ARMeshyDemo.AR
             }
         }
 
-        /// <summary>
-        /// Pick the largest (width*height) camera configuration and set it as current.
-        /// </summary>
+        /// <summary>Pick the largest (width*height) camera configuration and set it as current.</summary>
         private void TrySetHighestCameraResolution()
         {
             if (arCameraManager == null) return;
@@ -175,11 +187,11 @@ namespace ARMeshyDemo.AR
                     best = c;
             }
 
-            // Setting currentConfiguration can throw if subsystem is not running; guard above helps.
             try
             {
                 arCameraManager.currentConfiguration = best;
-                Debug.Log($"[CameraCapture] Forced highest camera config: {best.width}x{best.height} @ {(best.framerate.HasValue ? best.framerate.Value.ToString() : "?")}fps");
+                Debug.Log($"[CameraCapture] Forced highest camera config: {best.width}x{best.height}" +
+                          (best.framerate.HasValue ? $" @ {best.framerate.Value}fps" : ""));
             }
             catch (Exception e)
             {
@@ -187,9 +199,38 @@ namespace ARMeshyDemo.AR
             }
         }
 
-        /// <summary>
-        /// Fast GPU downscale to a target long side.
-        /// </summary>
+        /// <summary>Wait until TryAcquireLatestCpuImage succeeds or timeout.</summary>
+        private IEnumerator WaitForCpuImageAvailable(float timeoutSec)
+        {
+            float t = 0f;
+            while (t < timeoutSec)
+            {
+                if (arCameraManager.TryAcquireLatestCpuImage(out var img))
+                {
+                    img.Dispose();
+                    yield break; // success
+                }
+                t += Time.deltaTime;
+                yield return null;
+            }
+            Debug.LogWarning("[CameraCapture] WaitForCpuImageAvailable timed out.");
+        }
+
+        /// <summary>Attempt to acquire a CPU image within a time budget.</summary>
+        private bool TryAcquireCpuImageWithTimeout(out XRCpuImage cpuImage, float timeoutSec)
+        {
+            float t = 0f;
+            while (t < timeoutSec)
+            {
+                if (arCameraManager.TryAcquireLatestCpuImage(out cpuImage))
+                    return true;
+                t += Time.deltaTime;
+            }
+            cpuImage = default;
+            return false;
+        }
+
+        /// <summary>Fast GPU downscale to a target long side.</summary>
         private Texture2D DownscaleLongSideGPU(Texture2D src, int targetLongSide)
         {
             int w = src.width;
