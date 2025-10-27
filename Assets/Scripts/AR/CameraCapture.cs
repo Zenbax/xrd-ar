@@ -8,13 +8,23 @@ using UnityEngine.XR.ARSubsystems;
 namespace ARMeshyDemo.AR
 {
     /// <summary>
-    /// Captures a full-res CPU image from ARCameraManager.
-    /// Returns: (a) hi-res Texture2D for AR tracking, (b) JPG bytes (optionally downscaled) for upload.
+    /// Captures a full-resolution CPU image from ARCameraManager, returning:
+    ///  • hi-res Texture2D (RGBA32, readable) for AR tracking
+    ///  • JPG bytes (optionally downscaled) for upload
+    ///
+    /// It also forces the highest available camera configuration before capture.
     /// </summary>
     public class CameraCapture : MonoBehaviour
     {
         [Header("Refs")]
         [SerializeField] private ARCameraManager arCameraManager;
+
+        [Header("Capture Options")]
+        [Tooltip("Force the highest camera resolution available before capturing.")]
+        [SerializeField] private bool forceHighestResolution = true;
+
+        [Tooltip("Flip vertically to match ARCore camera orientation (usually correct).")]
+        [SerializeField] private bool mirrorY = true;
 
         [Header("Encode")]
         [Range(1, 100)]
@@ -22,19 +32,19 @@ namespace ARMeshyDemo.AR
 
         public void SetCameraManager(ARCameraManager cam) => arCameraManager = cam;
 
-        /// <param name="uploadLongSide">
-        /// If > 0, downscales the image’s long side to this many pixels for the JPG upload.
-        /// If 0, uses the full resolution for JPG too (larger upload).
-        /// </param>
-        public IEnumerator CaptureForTrackingAndUpload(
-            int uploadLongSide,
-            Action<byte[], Texture2D> onComplete)
+        /// <summary>
+        /// Captures for tracking + upload.
+        /// uploadLongSide:
+        ///   If > 0, downscale JPG so the long side equals this many pixels (saves bandwidth).
+        ///   If 0, upload full resolution.
+        /// </summary>
+        public IEnumerator CaptureForTrackingAndUpload(int uploadLongSide, Action<byte[], Texture2D> onComplete)
         {
-#if UNITY_EDITOR
+            #if UNITY_EDITOR
             Debug.LogWarning("[CameraCapture] CPU capture doesn't run in Editor. Test on device.");
             onComplete?.Invoke(null, null);
             yield break;
-#else
+            #else
             if (arCameraManager == null)
             {
                 Debug.LogError("[CameraCapture] ARCameraManager is null.");
@@ -42,11 +52,17 @@ namespace ARMeshyDemo.AR
                 yield break;
             }
 
-            // Try until we get an image this frame or the next
-            XRCpuImage cpuImage;
-            if (!arCameraManager.TryAcquireLatestCpuImage(out cpuImage))
+            // Make sure camera permission & subsystem are ready
+            yield return StartCoroutine(EnsureCameraReady());
+
+            // Force highest camera resolution (once per session is enough, but cheap to call here)
+            if (forceHighestResolution)
+                TrySetHighestCameraResolution();
+
+            // Try to acquire a CPU image this or next frame
+            if (!arCameraManager.TryAcquireLatestCpuImage(out XRCpuImage cpuImage))
             {
-                yield return null;
+                yield return null; // next frame
                 if (!arCameraManager.TryAcquireLatestCpuImage(out cpuImage))
                 {
                     Debug.LogError("[CameraCapture] Could not acquire CPU image.");
@@ -55,14 +71,14 @@ namespace ARMeshyDemo.AR
                 }
             }
 
-            // Convert to RGBA32 at native resolution.
-            // MirrorY is commonly correct for ARCore so the texture matches what the camera sees.
+            // Convert to RGBA32 at native resolution
             var conv = new XRCpuImage.ConversionParams
             {
-                inputRect = new RectInt(0, 0, cpuImage.width, cpuImage.height),
-                outputDimensions = new Vector2Int(cpuImage.width, cpuImage.height),
-                outputFormat = TextureFormat.RGBA32,
-                transformation = XRCpuImage.Transformation.MirrorY
+                inputRect         = new RectInt(0, 0, cpuImage.width, cpuImage.height),
+                outputDimensions  = new Vector2Int(cpuImage.width, cpuImage.height),
+                outputFormat      = TextureFormat.RGBA32,
+                transformation    = mirrorY ? XRCpuImage.Transformation.MirrorY
+                                            : XRCpuImage.Transformation.None
             };
 
             var request = cpuImage.ConvertAsync(conv);
@@ -83,18 +99,16 @@ namespace ARMeshyDemo.AR
             int w = conv.outputDimensions.x;
             int h = conv.outputDimensions.y;
 
-            // Full-res texture for AR tracking (keep readable!)
+            // Full-res, readable texture for runtime tracking
             var trackingTex = new Texture2D(w, h, TextureFormat.RGBA32, mipChain: false, linear: false);
             trackingTex.LoadRawTextureData(raw);
             trackingTex.Apply(updateMipmaps: false, makeNoLongerReadable: false);
             request.Dispose();
 
-            // Build JPG for upload (downscale if requested)
+            // Create JPG source (optionally downscale just for upload)
             Texture2D jpgSource = trackingTex;
             if (uploadLongSide > 0)
-            {
                 jpgSource = DownscaleLongSideGPU(trackingTex, uploadLongSide);
-            }
 
             byte[] jpg = null;
             try
@@ -112,12 +126,70 @@ namespace ARMeshyDemo.AR
 
             if (jpgSource != trackingTex) Destroy(jpgSource);
 
-            Debug.Log($"[CameraCapture] Captured {w}x{h}; upload size = {jpg.Length / 1024} KB");
+            Debug.Log($"[CameraCapture] Captured {w}x{h}; upload JPG = {jpg.Length / 1024} KB");
             onComplete?.Invoke(jpg, trackingTex);
-#endif
+           #endif
         }
 
-        // Fast GPU downscale using a temporary RenderTexture
+        /// <summary>
+        /// Wait until permission is granted and the camera subsystem is running.
+        /// </summary>
+        private IEnumerator EnsureCameraReady()
+        {
+            // Wait a few frames for AR to boot up if needed
+            float start = Time.realtimeSinceStartup;
+            while (arCameraManager.subsystem == null || !arCameraManager.subsystem.running)
+            {
+                if (Time.realtimeSinceStartup - start > 3f) break; // don't hang forever
+                yield return null;
+            }
+
+            // Permission usually requested by AR Foundation automatically
+            int tries = 0;
+            while (!arCameraManager.permissionGranted && tries < 20)
+            {
+                tries++;
+                yield return new WaitForSeconds(0.05f);
+            }
+        }
+
+        /// <summary>
+        /// Pick the largest (width*height) camera configuration and set it as current.
+        /// </summary>
+        private void TrySetHighestCameraResolution()
+        {
+            if (arCameraManager == null) return;
+
+            using var configs = arCameraManager.GetConfigurations(Allocator.Temp);
+            if (!configs.IsCreated || configs.Length == 0)
+            {
+                Debug.LogWarning("[CameraCapture] No AR camera configurations found.");
+                return;
+            }
+
+            XRCameraConfiguration best = configs[0];
+            for (int i = 1; i < configs.Length; i++)
+            {
+                var c = configs[i];
+                if (c.width * c.height > best.width * best.height)
+                    best = c;
+            }
+
+            // Setting currentConfiguration can throw if subsystem is not running; guard above helps.
+            try
+            {
+                arCameraManager.currentConfiguration = best;
+                Debug.Log($"[CameraCapture] Forced highest camera config: {best.width}x{best.height} @ {(best.framerate.HasValue ? best.framerate.Value.ToString() : "?")}fps");
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[CameraCapture] Could not set camera configuration: {e.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Fast GPU downscale to a target long side.
+        /// </summary>
         private Texture2D DownscaleLongSideGPU(Texture2D src, int targetLongSide)
         {
             int w = src.width;
@@ -128,6 +200,7 @@ namespace ARMeshyDemo.AR
 
             var rt = RenderTexture.GetTemporary(nw, nh, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Default);
             Graphics.Blit(src, rt);
+
             var prev = RenderTexture.active;
             RenderTexture.active = rt;
 
