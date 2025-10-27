@@ -1051,7 +1051,8 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
-  m_SerializedLibrary: {fileID: 0}
+  m_SerializedLibrary: {fileID: 11400000, guid: eefcc0ac8475e224caa2f28fe26d882a,
+    type: 2}
   m_MaxNumberOfMovingImages: 1
   m_TrackedImagePrefab: {fileID: 3086270707552817575, guid: cb61337be378b6548b637b1aa9960b96,
     type: 3}
