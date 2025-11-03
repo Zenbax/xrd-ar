@@ -134,7 +134,6 @@ GameObject:
   - component: {fileID: 446714}
   - component: {fileID: 446713}
   - component: {fileID: 446712}
-  - component: {fileID: 446718}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -402,23 +401,6 @@ Camera:
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
   m_StereoSeparation: 0.022
---- !u!114 &446718
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 446710}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3d19b2afc9a73c24b8c84e41bc228e7a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ARMeshyDemo.AR.CameraCapture
-  arCameraManager: {fileID: 446715}
-  forceHighestResolution: 1
-  mirrorY: 1
-  cpuImageTimeoutSec: 2
-  jpgQuality: 95
 --- !u!1 &60290109
 GameObject:
   m_ObjectHideFlags: 0
@@ -629,7 +611,7 @@ GameObject:
   - component: {fileID: 435695850}
   - component: {fileID: 435695849}
   m_Layer: 5
-  m_Name: HUD_TEXT
+  m_Name: HUD_DEBUG_TEXT
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -921,6 +903,58 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 437817156}
   m_CullTransparentMesh: 1
+--- !u!1 &457194551
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 457194552}
+  - component: {fileID: 457194553}
+  m_Layer: 0
+  m_Name: 1.1 UIController (Controls UI)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &457194552
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 457194551}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -166.65637, y: 0, z: 5105.1084}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 944631660}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &457194553
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 457194551}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 523060ba67aaa8d46b0cc9c7bf63ae10, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ARMeshyDemo.UI.UIController
+  loader: {fileID: 1040486426}
+  statusText: {fileID: 1588269283}
+  generateButton: {fileID: 1920271162}
+  progressBar: {fileID: 578416738}
+  cancelButton: {fileID: 770727999}
+  retryButton: {fileID: 1104741100}
+  errorPanel: {fileID: 1346126712}
+  errorText: {fileID: 437817158}
 --- !u!1 &481437851
 GameObject:
   m_ObjectHideFlags: 0
@@ -935,8 +969,6 @@ GameObject:
   - component: {fileID: 481437853}
   - component: {fileID: 481437852}
   - component: {fileID: 481437857}
-  - component: {fileID: 481437858}
-  - component: {fileID: 481437859}
   m_Layer: 0
   m_Name: XR Origin
   m_TagString: Untagged
@@ -1038,68 +1070,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Unity.XR.ARFoundation::UnityEngine.XR.ARFoundation.ARTrackedImageManager
   <trackablesChanged>k__BackingField:
     m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 0}
-        m_TargetAssemblyTypeName: 
-        m_MethodName: 
-        m_Mode: 0
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: 
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
+      m_Calls: []
   m_SerializedLibrary: {fileID: 11400000, guid: eefcc0ac8475e224caa2f28fe26d882a,
     type: 2}
   m_MaxNumberOfMovingImages: 1
   m_TrackedImagePrefab: {fileID: 3086270707552817575, guid: cb61337be378b6548b637b1aa9960b96,
     type: 3}
---- !u!114 &481437858
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 481437851}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ef8a73c6a4fc94246baebb9601128382, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ARMeshyDemo.AR.RuntimeImageLibraryController
-  trackedImageManager: {fileID: 481437857}
-  serializedLibrary: {fileID: 11400000, guid: eefcc0ac8475e224caa2f28fe26d882a, type: 2}
-  defaultPhysicalWidthMeters: 0.15
-  verboseLogs: 1
-  debugOverlayPrefab: {fileID: 9125082614743242317, guid: 2b8598404521f3b42aa290be07be72c7,
-    type: 3}
-  matchTrackedSize: 1
---- !u!114 &481437859
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 481437851}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 41a5b7c96e7808f4d8ba764b30f69860, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ARMeshyDemo.AR.ModelOverlayController
-  trackedImageManager: {fileID: 481437857}
-  runtimeLib: {fileID: 481437858}
-  generateController: {fileID: 1920271164}
-  matchTrackedWidth: 1
-  widthScaleMultiplier: 1
-  localPositionOffset: {x: 0, y: 0, z: 0}
-  localEulerOffset: {x: -90, y: 0, z: 0}
-  hideWhenNotTracking: 1
-  lockToFirstSeen: 1
-  lostReleaseSeconds: 1
-  verboseLogs: 1
-  tryAttachImmediatelyOnModelLoaded: 1
-  drawAttachGizmos: 0
 --- !u!1 &503095435
 GameObject:
   m_ObjectHideFlags: 0
@@ -1109,7 +1085,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 503095436}
-  - component: {fileID: 503095437}
   m_Layer: 5
   m_Name: UI_Root
   m_TagString: Untagged
@@ -1136,26 +1111,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &503095437
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 503095435}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 523060ba67aaa8d46b0cc9c7bf63ae10, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ARMeshyDemo.UI.UIController
-  loader: {fileID: 1040486426}
-  statusText: {fileID: 1588269283}
-  generateButton: {fileID: 1920271162}
-  progressBar: {fileID: 578416738}
-  cancelButton: {fileID: 770727999}
-  retryButton: {fileID: 1104741100}
-  errorPanel: {fileID: 1346126712}
-  errorText: {fileID: 437817158}
 --- !u!1 &510908815
 GameObject:
   m_ObjectHideFlags: 0
@@ -1470,7 +1425,7 @@ GameObject:
   - component: {fileID: 605258498}
   - component: {fileID: 605258499}
   m_Layer: 0
-  m_Name: MeshyClient
+  m_Name: 1.4 MeshyClient (Uploads Image & Polls Task)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1781,8 +1736,13 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 1260208303}
+  - {fileID: 457194552}
+  - {fileID: 2016779278}
+  - {fileID: 1426960815}
   - {fileID: 605258498}
   - {fileID: 1176913105}
+  - {fileID: 2009704097}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1001237389
@@ -2343,7 +2303,7 @@ GameObject:
   - component: {fileID: 1176913105}
   - component: {fileID: 1176913106}
   m_Layer: 0
-  m_Name: GltfLoader
+  m_Name: 1.5 GltfLoader (Downloads & Loads Model)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2378,6 +2338,58 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ARMeshyDemo.Net.GltfLoader
   uniformScale: 0.5
   setLayer: -1
+--- !u!1 &1260208302
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1260208303}
+  - component: {fileID: 1260208304}
+  m_Layer: 0
+  m_Name: 1. GenerateController  (Start)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1260208303
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1260208302}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 944631660}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1260208304
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1260208302}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 507c86b72fa7c1f46abdb34de5db4568, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ARMeshyDemo.Controllers.GenerateController
+  ui: {fileID: 457194553}
+  generateButton: {fileID: 1920271162}
+  overlay: {fileID: 2009704098}
+  cameraCapture: {fileID: 2016779279}
+  runtimeLib: {fileID: 1426960816}
+  refPhysicalWidthMeters: 0.15
+  meshyClient: {fileID: 605258499}
+  gltfLoader: {fileID: 1176913106}
 --- !u!1 &1346126712
 GameObject:
   m_ObjectHideFlags: 0
@@ -2455,6 +2467,57 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1346126712}
   m_CullTransparentMesh: 1
+--- !u!1 &1426960814
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1426960815}
+  - component: {fileID: 1426960816}
+  m_Layer: 0
+  m_Name: 1.3 RuntimeImageLibararyController (Adds Image to reference libarary)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1426960815
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1426960814}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -166.65453, y: 0, z: 5105.0425}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 944631660}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1426960816
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1426960814}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ef8a73c6a4fc94246baebb9601128382, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ARMeshyDemo.AR.RuntimeImageLibraryController
+  trackedImageManager: {fileID: 481437857}
+  serializedLibrary: {fileID: 11400000, guid: eefcc0ac8475e224caa2f28fe26d882a, type: 2}
+  defaultPhysicalWidthMeters: 0.15
+  verboseLogs: 1
+  debugOverlayPrefab: {fileID: 9125082614743242317, guid: 2b8598404521f3b42aa290be07be72c7,
+    type: 3}
+  matchTrackedSize: 1
 --- !u!1 &1507748006
 GameObject:
   m_ObjectHideFlags: 0
@@ -3106,7 +3169,6 @@ GameObject:
   - component: {fileID: 1920271165}
   - component: {fileID: 1920271163}
   - component: {fileID: 1920271162}
-  - component: {fileID: 1920271164}
   m_Layer: 5
   m_Name: Btn_Generate
   m_TagString: Untagged
@@ -3188,26 +3250,6 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
---- !u!114 &1920271164
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1920271161}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 507c86b72fa7c1f46abdb34de5db4568, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ARMeshyDemo.Controllers.GenerateController
-  ui: {fileID: 503095437}
-  generateButton: {fileID: 1920271162}
-  overlay: {fileID: 481437859}
-  cameraCapture: {fileID: 446718}
-  runtimeLib: {fileID: 481437858}
-  refPhysicalWidthMeters: 0.15
-  meshyClient: {fileID: 605258499}
-  gltfLoader: {fileID: 1176913106}
 --- !u!222 &1920271165
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -3236,6 +3278,112 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 160}
   m_SizeDelta: {x: 420, y: 120}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!1 &2009704096
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2009704097}
+  - component: {fileID: 2009704098}
+  m_Layer: 0
+  m_Name: 1.6 ModelOverlayController (Attaches generated model to tracked image)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2009704097
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2009704096}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 944631660}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2009704098
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2009704096}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 41a5b7c96e7808f4d8ba764b30f69860, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ARMeshyDemo.AR.ModelOverlayController
+  trackedImageManager: {fileID: 481437857}
+  runtimeLib: {fileID: 0}
+  generateController: {fileID: 1260208304}
+  matchTrackedWidth: 1
+  widthScaleMultiplier: 1
+  localPositionOffset: {x: 0, y: 0, z: 0}
+  localEulerOffset: {x: -90, y: 0, z: 0}
+  hideWhenNotTracking: 1
+  lockToFirstSeen: 1
+  lostReleaseSeconds: 1
+  verboseLogs: 1
+  tryAttachImmediatelyOnModelLoaded: 1
+  drawAttachGizmos: 0
+--- !u!1 &2016779277
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2016779278}
+  - component: {fileID: 2016779279}
+  m_Layer: 0
+  m_Name: '1.2 CameraCaputure (Capture''s Image ) '
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2016779278
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2016779277}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -166.65453, y: 0, z: 5105.0425}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 944631660}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2016779279
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2016779277}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d19b2afc9a73c24b8c84e41bc228e7a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ARMeshyDemo.AR.CameraCapture
+  arCameraManager: {fileID: 446715}
+  forceHighestResolution: 1
+  mirrorY: 1
+  cpuImageTimeoutSec: 2
+  jpgQuality: 95
 --- !u!1 &2021981734
 GameObject:
   m_ObjectHideFlags: 0
