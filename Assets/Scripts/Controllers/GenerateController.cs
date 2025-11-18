@@ -142,10 +142,14 @@ namespace ARMeshyDemo.Controllers
             string errMsg = null;
             string taskId = null;
 
+            // ✅ Explicitly request textures and PBR materials
             yield return StartCoroutine(meshyClient.CreateImageTo3D(
                 _lastRefJpg, "image/jpeg",
                 onOk: id => taskId = id,
-                onErr: e => errMsg = e
+                onErr: e => errMsg = e,
+                shouldRemesh: true,
+                shouldTexture: true,  // ✅ Enable texturing
+                enablePbr: true       // ✅ Enable PBR materials
             ));
 
             if (_cancelRequested) { Done("Cancelled."); yield break; }
@@ -159,6 +163,8 @@ namespace ARMeshyDemo.Controllers
             ui.SetProgress(0.25f, "Generating 3D model...");
 
             // === Poll (25% → 80%) ============================================
+            bool canDownload = false;
+
             yield return StartCoroutine(meshyClient.PollImageTo3D(
                 taskId,
                 intervalSec: 3f,
@@ -167,7 +173,40 @@ namespace ARMeshyDemo.Controllers
                     float p = Mathf.Lerp(0.25f, 0.80f, Mathf.Clamp01(task.progress / 100f));
                     ui.SetProgress(p, $"Generating... {task.progress:0}%");
                 },
-                onDone: task => { _lastGlbUrl = task?.model_urls?.glb; },
+                onDone: task =>
+                {
+                    if (task?.model_urls == null)
+                    {
+                        errMsg = "Task completed but no model URLs returned.";
+                        return;
+                    }
+
+                    // ✅ PREFER GLB (works with GLTFUtility, has embedded textures)
+                    if (!string.IsNullOrEmpty(task.model_urls.glb))
+                    {
+                        _lastGlbUrl = task.model_urls.glb;
+                        Debug.Log("[GenerateController] Using GLB format (GLTFUtility)");
+                    }
+                    // ✅ FALLBACK: Try FBX if available (requires TriLib 2 - $95)
+                    else if (!string.IsNullOrEmpty(task.model_urls.fbx))
+                    {
+                        _lastGlbUrl = task.model_urls.fbx;
+                        Debug.LogWarning("[GenerateController] Using FBX format (requires TriLib 2 plugin)");
+                    }
+                    // ✅ LAST RESORT: OBJ (requires runtime OBJ loader)
+                    else if (!string.IsNullOrEmpty(task.model_urls.obj))
+                    {
+                        _lastGlbUrl = task.model_urls.obj;
+                        Debug.LogWarning("[GenerateController] Using OBJ format (requires OBJ loader plugin)");
+                    }
+                    else
+                    {
+                        errMsg = "No supported model format available.";
+                        return;
+                    }
+
+                    canDownload = true;
+                },
                 onErr: e => { errMsg = e; },
                 timeoutSec: 600f
             ));
@@ -178,9 +217,9 @@ namespace ARMeshyDemo.Controllers
                 Fail(errMsg);
                 yield break;
             }
-            if (string.IsNullOrEmpty(_lastGlbUrl))
+            if (!canDownload || string.IsNullOrEmpty(_lastGlbUrl))
             {
-                Fail("No GLB URL from task.");
+                Fail("No model URL from task.");
                 yield break;
             }
 

@@ -547,37 +547,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
---- !u!1 &214275367
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 214275368}
-  m_Layer: 0
-  m_Name: 1.2.1 AttachToRefLib
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &214275368
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 214275367}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.28952026, y: 0.46441, z: 117.54166}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 944631660}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &242085999
 GameObject:
   m_ObjectHideFlags: 0
@@ -1490,7 +1459,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ARMeshyDemo.Net.MeshyClient
   settings: {fileID: 11400000, guid: d6b7607564995f54a9fe731cd35e5985, type: 2}
-  requestAllFormats: 1
+  requestOnlyGlb: 1
 --- !u!1 &770727997
 GameObject:
   m_ObjectHideFlags: 0
@@ -1771,7 +1740,6 @@ Transform:
   - {fileID: 1260208303}
   - {fileID: 457194552}
   - {fileID: 2016779278}
-  - {fileID: 214275368}
   - {fileID: 1426960815}
   - {fileID: 605258498}
   - {fileID: 1176913105}
@@ -2366,17 +2334,15 @@ MonoBehaviour:
   m_GameObject: {fileID: 1176913104}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 96dd983924d331e44b772972d68d1685, type: 3}
+  m_Script: {fileID: 11500000, guid: 6cfc7fa3d4ea45b43b1bb188a020a471, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ARMeshyDemo.Net.GltfLoader
-  uniformScale: 1
+  uniformScale: 0.5
   setLayer: -1
   remapMaterials: 1
   litPolicy: 1
   unlitIfNoTextures: 0
-  autoRemapOnPink: 1
   logMaterialDebug: 1
-  verboseTextureDebug: 1
 --- !u!1 &1260208302
 GameObject:
   m_ObjectHideFlags: 0

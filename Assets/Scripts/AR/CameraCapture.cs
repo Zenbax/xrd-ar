@@ -110,9 +110,11 @@ namespace ARMeshyDemo.AR
             int h = conv.outputDimensions.y;
 
             // Full-res, readable texture for runtime tracking
-            var trackingTex = new Texture2D(w, h, TextureFormat.RGBA32, mipChain: false, linear: false);
+            // Create with mipmaps and generate them — improves ARCore validation on many devices.
+            var trackingTex = new Texture2D(w, h, TextureFormat.RGBA32, mipChain: true, linear: false);
             trackingTex.LoadRawTextureData(raw);
-            trackingTex.Apply(updateMipmaps: false, makeNoLongerReadable: false);
+            trackingTex.filterMode = FilterMode.Trilinear;
+            trackingTex.Apply(updateMipmaps: true, makeNoLongerReadable: false);
             request.Dispose();
 
             // 5) Build JPG for upload (optionally downscaled)

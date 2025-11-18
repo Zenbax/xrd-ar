@@ -17,6 +17,9 @@ namespace ARMeshyDemo.Net
     public class MeshyClient : MonoBehaviour
     {
         [SerializeField] private MeshySettings settings;
+        [Header("Format")]
+        [Tooltip("Request all formats (glb, fbx, obj, usdz) for maximum compatibility. Disable to request only GLB.")]
+        [SerializeField] private bool requestAllFormats = true;
 
         private const string BaseUrl = "https://api.meshy.ai/openapi/v1";
         private string ApiKey => settings != null ? settings.ResolveApiKey() : null;
@@ -28,6 +31,8 @@ namespace ARMeshyDemo.Net
             public bool should_remesh = true;
             public bool should_texture = true;
             public bool enable_pbr = true;
+            // Valgfrit: bed kun om bestemte output formater (Meshy ignorerer hvis ikke understøttet).
+            public string[] model_formats; // fx ["glb"]
         }
 
         [Serializable] private class CreateRes { public string result; }
@@ -51,8 +56,14 @@ namespace ARMeshyDemo.Net
             public string failure_reason;
         }
 
-        public IEnumerator CreateImageTo3D(byte[] imageBytes, string mimeType,
-                                           Action<string> onOk, Action<string> onErr)
+        public IEnumerator CreateImageTo3D(
+            byte[] imageBytes, 
+            string mimeType,
+            Action<string> onOk, 
+            Action<string> onErr,
+            bool shouldRemesh = true,
+            bool shouldTexture = true,
+            bool enablePbr = true)
         {
             var key = ApiKey;
             if (string.IsNullOrEmpty(key))
@@ -65,8 +76,23 @@ namespace ARMeshyDemo.Net
             var b64 = Convert.ToBase64String(imageBytes);
             var dataUri = $"data:{mimeType};base64,{b64}";
 
-            var payload = new CreateReq { image_url = dataUri };
+            var payload = new CreateReq { 
+                image_url = dataUri,
+                should_remesh = shouldRemesh,
+                should_texture = shouldTexture,
+                enable_pbr = enablePbr
+            };
+            
+            // ? Request all formats by default for better texture support
+            if (!requestAllFormats)
+                payload.model_formats = new[] { "glb" };
+
             var json = JsonUtility.ToJson(payload);
+            
+            // ? Debug logging to verify texture parameters are being sent
+            Debug.Log($"[MeshyClient] Creating task with: should_texture={shouldTexture}, enable_pbr={enablePbr}, should_remesh={shouldRemesh}");
+            Debug.Log($"[MeshyClient] Requesting formats: {(requestAllFormats ? "ALL formats (glb, fbx, obj, usdz)" : "GLB only")}");
+            Debug.Log($"[MeshyClient] Request payload: {json}");
 
             using (var req = new UnityWebRequest($"{BaseUrl}/image-to-3d", "POST"))
             {
@@ -98,6 +124,7 @@ namespace ARMeshyDemo.Net
                     yield break;
                 }
 
+                Debug.Log($"[MeshyClient] Task created successfully: {res.result}");
                 onOk?.Invoke(res.result);
             }
         }
@@ -177,6 +204,21 @@ namespace ARMeshyDemo.Net
                     var s = last.status ?? "";
                     if (s.Equals("SUCCEEDED", StringComparison.OrdinalIgnoreCase))
                     {
+                        // ? Log all available URLs
+                        Debug.Log($"[MeshyClient] Task SUCCEEDED!");
+                        if (last.model_urls != null)
+                        {
+                            Debug.Log($"[MeshyClient] Available URLs:");
+                            if (!string.IsNullOrEmpty(last.model_urls.glb)) Debug.Log($"  GLB: {last.model_urls.glb}");
+                            if (!string.IsNullOrEmpty(last.model_urls.fbx)) Debug.Log($"  FBX: {last.model_urls.fbx}");
+                            if (!string.IsNullOrEmpty(last.model_urls.obj)) Debug.Log($"  OBJ: {last.model_urls.obj}");
+                            if (!string.IsNullOrEmpty(last.model_urls.usdz)) Debug.Log($"  USDZ: {last.model_urls.usdz}");
+                        }
+                        else
+                        {
+                            Debug.LogWarning("[MeshyClient] ?? No model_urls in response!");
+                        }
+                        
                         onDone?.Invoke(last);
                         yield break;
                     }
