@@ -3367,7 +3367,7 @@ MonoBehaviour:
   matchTrackedWidth: 1
   widthScaleMultiplier: 1
   localPositionOffset: {x: 0, y: 0, z: 0}
-  localEulerOffset: {x: -90, y: 0, z: 0}
+  localEulerOffset: {x: -90, y: 180, z: 0}
   hideWhenNotTracking: 0
   lockToFirstSeen: 1
   lostReleaseSeconds: 1

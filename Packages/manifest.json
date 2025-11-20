@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "com.siccity.gltfutility": "https://github.com/Siccity/GLTFUtility.git",
     "com.unity.ai.assistant": "1.0.0-pre.12",
     "com.unity.ai.generators": "1.0.0-pre.20",
     "com.unity.ai.inference": "2.3.0",
@@ -12,13 +13,13 @@
     "com.unity.postprocessing": "3.5.0",
     "com.unity.render-pipelines.universal": "17.2.0",
     "com.unity.timeline": "1.8.9",
+    "com.unity.xr-content.xr-sim-environments": "file:../ContentPackages\\com.unity.xr-content.xr-sim-environments-2.1.1.tgz",
     "com.unity.xr.arcore": "6.2.0",
     "com.unity.xr.arfoundation": "6.2.0",
     "com.unity.xr.arkit": "6.2.0",
     "com.unity.xr.interaction.toolkit": "3.2.1",
     "com.unity.xr.management": "4.5.2",
     "com.unity.xr.openxr": "1.15.1",
-    "com.siccity.gltfutility": "https://github.com/Siccity/GLTFUtility.git",
     "com.unity.modules.accessibility": "1.0.0",
     "com.unity.modules.ai": "1.0.0",
     "com.unity.modules.androidjni": "1.0.0",
