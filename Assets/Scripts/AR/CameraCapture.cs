@@ -35,6 +35,8 @@ namespace ARMeshyDemo.AR
         [Range(1, 100)]
         [SerializeField] private int jpgQuality = 90;
 
+        private Texture2D _captureTexture; // reused for tracking
+
         public void SetCameraManager(ARCameraManager cam) => arCameraManager = cam;
 
         /// <summary>
@@ -66,56 +68,85 @@ namespace ARMeshyDemo.AR
             if (forceHighestResolution)
             {
                 TrySetHighestCameraResolution();
-                // IMPORTANT: after changing configuration, the stream can briefly stop.
+                // After changing configuration, the stream can briefly stop.
                 // Wait until we can actually acquire a CPU image again.
                 yield return StartCoroutine(WaitForCpuImageAvailable(cpuImageTimeoutSec));
             }
 
-            // 3) Acquire a CPU image with a bounded timeout (works even if config wasn't changed)
-            XRCpuImage cpuImage;
-            if (!TryAcquireCpuImageWithTimeout(out cpuImage, cpuImageTimeoutSec))
+            // 3) Acquire a CPU image with a bounded timeout
+            if (!TryAcquireCpuImageWithTimeout(out XRCpuImage cpuImage, cpuImageTimeoutSec))
             {
                 Debug.LogError("[CameraCapture] Could not acquire CPU image (timeout).");
                 onComplete?.Invoke(null, null);
                 yield break;
             }
 
-            // 4) Convert to RGBA32 at native resolution
+            // 4) Convert to RGBA32 at native resolution (SYNC)
             var conv = new XRCpuImage.ConversionParams
             {
                 inputRect        = new RectInt(0, 0, cpuImage.width, cpuImage.height),
                 outputDimensions = new Vector2Int(cpuImage.width, cpuImage.height),
                 outputFormat     = TextureFormat.RGBA32,
                 transformation   = mirrorY
-                                    ? XRCpuImage.Transformation.MirrorY
-                                    : XRCpuImage.Transformation.None
+                                   ? XRCpuImage.Transformation.MirrorY
+                                   : XRCpuImage.Transformation.None
             };
 
-            var request = cpuImage.ConvertAsync(conv);
-            cpuImage.Dispose();
+            int size = cpuImage.GetConvertedDataSize(conv);
+            var raw = new NativeArray<byte>(size, Allocator.Temp);
 
-            while (!request.status.IsDone())
-                yield return null;
-
-            if (request.status != XRCpuImage.AsyncConversionStatus.Ready)
+            try
             {
-                Debug.LogError($"[CameraCapture] ConvertAsync failed: {request.status}");
-                request.Dispose();
+                cpuImage.Convert(conv, raw);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[CameraCapture] cpuImage.Convert failed: {e}");
+                cpuImage.Dispose();
+                raw.Dispose();
                 onComplete?.Invoke(null, null);
                 yield break;
             }
 
-            var raw = request.GetData<byte>();
+            cpuImage.Dispose();
+
             int w = conv.outputDimensions.x;
             int h = conv.outputDimensions.y;
 
-            // Full-res, readable texture for runtime tracking
-            // Create with mipmaps and generate them — improves ARCore validation on many devices.
-            var trackingTex = new Texture2D(w, h, TextureFormat.RGBA32, mipChain: true, linear: false);
-            trackingTex.LoadRawTextureData(raw);
-            trackingTex.filterMode = FilterMode.Trilinear;
-            trackingTex.Apply(updateMipmaps: true, makeNoLongerReadable: false);
-            request.Dispose();
+            // Sanity check: expected bytes for RGBA32 (no mipmaps)
+            int expected = w * h * 4;
+            Debug.Log($"[CameraCapture] Raw length = {raw.Length}, expected = {expected} " +
+                      $"(w={w}, h={h})");
+
+            if (raw.Length != expected)
+            {
+                Debug.LogError($"[CameraCapture] SIZE MISMATCH – expected {expected} bytes, got {raw.Length}. " +
+                               "Not calling LoadRawTextureData.");
+                raw.Dispose();
+                onComplete?.Invoke(null, null);
+                yield break;
+            }
+
+            // Full-res, readable texture for runtime tracking (NO mipmaps)
+            if (_captureTexture == null ||
+                _captureTexture.width  != w ||
+                _captureTexture.height != h ||
+                _captureTexture.format != TextureFormat.RGBA32)
+            {
+                _captureTexture = new Texture2D(
+                    w, h,
+                    TextureFormat.RGBA32,
+                    mipChain: false,   // IMPORTANT: no mipmaps, matches data size
+                    linear:   false);
+            }
+
+            _captureTexture.LoadRawTextureData(raw);
+            _captureTexture.filterMode = FilterMode.Bilinear;
+            _captureTexture.Apply(updateMipmaps: false, makeNoLongerReadable: false);
+
+            raw.Dispose();
+
+            var trackingTex = _captureTexture; // alias for clarity
 
             // 5) Build JPG for upload (optionally downscaled)
             Texture2D jpgSource = trackingTex;
@@ -134,7 +165,6 @@ namespace ARMeshyDemo.AR
             {
                 Debug.LogError($"[CameraCapture] EncodeToJPG failed: {e}");
                 if (jpgSource != trackingTex) Destroy(jpgSource);
-                Destroy(trackingTex);
                 onComplete?.Invoke(null, null);
                 yield break;
             }

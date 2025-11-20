@@ -38,6 +38,11 @@ namespace ARMeshyDemo.Controllers
         private bool _cancelRequested;
         private int _prevSleep;
 
+        // Optional public accessors if you want to inspect these elsewhere
+        public string LastTaskId => _lastTaskId;
+        public string LastGlbUrl => _lastGlbUrl;
+        public GameObject GetLoadedModel() => _loadedModel;
+
         void OnEnable()
         {
             if (generateButton) generateButton.onClick.AddListener(OnGenerateClicked);
@@ -73,8 +78,6 @@ namespace ARMeshyDemo.Controllers
             ui.ShowCancel(false);
         }
 
-        public GameObject GetLoadedModel() => _loadedModel;
-
         private IEnumerator GenerateRoutine(bool fullPipeline)
         {
             // --- Preconditions -------------------------------------------------
@@ -106,13 +109,12 @@ namespace ARMeshyDemo.Controllers
             const int UploadLongSide = 1024;
 
             yield return StartCoroutine(cameraCapture.CaptureForTrackingAndUpload(
-            UploadLongSide,
-            (jpg, tex) =>
-            {
-                _lastRefJpg = jpg;     // send this to Meshy
-                _lastRefTex = tex;     // use this (full-res) for AddImageFromTexture
-            }));
-
+                UploadLongSide,
+                (jpg, tex) =>
+                {
+                    _lastRefJpg = jpg; // send this to Meshy
+                    _lastRefTex = tex; // use this (full-res) for AddImageFromTexture
+                }));
 
             if (_cancelRequested) { Done("Cancelled."); yield break; }
 
@@ -121,6 +123,7 @@ namespace ARMeshyDemo.Controllers
                 Fail("Capture failed. Try again.");
                 yield break;
             }
+
             ui.SetProgress(0.10f, "Adding reference for tracking...");
 
             // === Runtime add (20%) ============================================
@@ -136,20 +139,21 @@ namespace ARMeshyDemo.Controllers
                 Fail("Failed to add tracking reference.");
                 yield break;
             }
+
             ui.SetProgress(0.20f, "Uploading to Meshy...");
 
             // === Create task (25%→30%) =======================================
             string errMsg = null;
             string taskId = null;
 
-            // ✅ Explicitly request textures and PBR materials
+            // Explicitly request textures and PBR materials
             yield return StartCoroutine(meshyClient.CreateImageTo3D(
                 _lastRefJpg, "image/jpeg",
                 onOk: id => taskId = id,
                 onErr: e => errMsg = e,
                 shouldRemesh: true,
-                shouldTexture: true,  // ✅ Enable texturing
-                enablePbr: true       // ✅ Enable PBR materials
+                shouldTexture: true,
+                enablePbr: true
             ));
 
             if (_cancelRequested) { Done("Cancelled."); yield break; }
@@ -160,6 +164,8 @@ namespace ARMeshyDemo.Controllers
             }
 
             _lastTaskId = taskId;
+            Debug.Log("[Generate] Meshy task id: " + _lastTaskId);
+
             ui.SetProgress(0.25f, "Generating 3D model...");
 
             // === Poll (25% → 80%) ============================================
@@ -181,19 +187,19 @@ namespace ARMeshyDemo.Controllers
                         return;
                     }
 
-                    // ✅ PREFER GLB (works with GLTFUtility, has embedded textures)
+                    // Prefer GLB (works with GLTFUtility, has embedded textures)
                     if (!string.IsNullOrEmpty(task.model_urls.glb))
                     {
                         _lastGlbUrl = task.model_urls.glb;
                         Debug.Log("[GenerateController] Using GLB format (GLTFUtility)");
                     }
-                    // ✅ FALLBACK: Try FBX if available (requires TriLib 2 - $95)
+                    // Fallback: FBX
                     else if (!string.IsNullOrEmpty(task.model_urls.fbx))
                     {
                         _lastGlbUrl = task.model_urls.fbx;
                         Debug.LogWarning("[GenerateController] Using FBX format (requires TriLib 2 plugin)");
                     }
-                    // ✅ LAST RESORT: OBJ (requires runtime OBJ loader)
+                    // Last resort: OBJ
                     else if (!string.IsNullOrEmpty(task.model_urls.obj))
                     {
                         _lastGlbUrl = task.model_urls.obj;
@@ -205,6 +211,7 @@ namespace ARMeshyDemo.Controllers
                         return;
                     }
 
+                    Debug.Log("[Generate] Meshy model URL: " + _lastGlbUrl);
                     canDownload = true;
                 },
                 onErr: e => { errMsg = e; },
@@ -223,7 +230,7 @@ namespace ARMeshyDemo.Controllers
                 yield break;
             }
 
-            Debug.Log("[Generate] GLB URL: " + _lastGlbUrl);
+            Debug.Log("[Generate] GLB URL (final): " + _lastGlbUrl);
 
             // === Download & Load (80% → 100%) =================================
             ui.SetStatus("Downloading & loading GLB...");
@@ -234,10 +241,10 @@ namespace ARMeshyDemo.Controllers
                 onOk: go =>
                 {
                     _loadedModel = go;
-                    _loadedModel.SetActive(false); // aktiveres ved attach
+                    _loadedModel.SetActive(false); // activates when attached
                     ui.SetProgress(1f, "Model ready ✓");
 
-                    // Forsøg at attach'e STRAKS (hvis billedet allerede er i view)
+                    // Try attaching immediately (if image already in view)
                     overlay?.TryAttachToCurrentlyTracked();
                     if (overlay == null)
                     {
@@ -259,7 +266,7 @@ namespace ARMeshyDemo.Controllers
                 yield break;
             }
 
-            // KALD FELTET igen (ingen lokal var!)
+            // Call overlay again from field, not local var
             overlay?.TryAttachToCurrentlyTracked();
             if (overlay == null)
             {

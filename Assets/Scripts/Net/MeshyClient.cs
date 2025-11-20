@@ -17,6 +17,7 @@ namespace ARMeshyDemo.Net
     public class MeshyClient : MonoBehaviour
     {
         [SerializeField] private MeshySettings settings;
+
         [Header("Format")]
         [Tooltip("Request all formats (glb, fbx, obj, usdz) for maximum compatibility. Disable to request only GLB.")]
         [SerializeField] private bool requestAllFormats = true;
@@ -33,9 +34,16 @@ namespace ARMeshyDemo.Net
             public bool enable_pbr = true;
             // Valgfrit: bed kun om bestemte output formater (Meshy ignorerer hvis ikke understøttet).
             public string[] model_formats; // fx ["glb"]
+
+            // Valgfrit: ai_model ("meshy-4", "meshy-5", "latest"). Null => Meshy default.
+            public string ai_model;
         }
 
-        [Serializable] private class CreateRes { public string result; }
+        [Serializable]
+        private class CreateRes
+        {
+            public string result;
+        }
 
         [Serializable]
         public class ModelUrls
@@ -57,13 +65,14 @@ namespace ARMeshyDemo.Net
         }
 
         public IEnumerator CreateImageTo3D(
-            byte[] imageBytes, 
+            byte[] imageBytes,
             string mimeType,
-            Action<string> onOk, 
+            Action<string> onOk,
             Action<string> onErr,
             bool shouldRemesh = true,
             bool shouldTexture = true,
-            bool enablePbr = true)
+            bool enablePbr = true,
+            string aiModelOverride = null) // valgfrit pr-kald override
         {
             var key = ApiKey;
             if (string.IsNullOrEmpty(key))
@@ -76,22 +85,38 @@ namespace ARMeshyDemo.Net
             var b64 = Convert.ToBase64String(imageBytes);
             var dataUri = $"data:{mimeType};base64,{b64}";
 
-            var payload = new CreateReq { 
+            // Hent model-valg fra settings (enum) + evt. override-streng
+            string aiModel = null;
+            if (settings != null)
+            {
+                aiModel = settings.ResolveAiModel(aiModelOverride);
+            }
+            else
+            {
+                aiModel = string.IsNullOrWhiteSpace(aiModelOverride) ? null : aiModelOverride.Trim();
+            }
+
+            var payload = new CreateReq
+            {
                 image_url = dataUri,
                 should_remesh = shouldRemesh,
                 should_texture = shouldTexture,
-                enable_pbr = enablePbr
+                enable_pbr = enablePbr,
+                ai_model = aiModel
             };
-            
-            // ? Request all formats by default for better texture support
+
+            // Request all formats by default for better texture support
             if (!requestAllFormats)
                 payload.model_formats = new[] { "glb" };
 
             var json = JsonUtility.ToJson(payload);
-            
-            // ? Debug logging to verify texture parameters are being sent
-            Debug.Log($"[MeshyClient] Creating task with: should_texture={shouldTexture}, enable_pbr={enablePbr}, should_remesh={shouldRemesh}");
-            Debug.Log($"[MeshyClient] Requesting formats: {(requestAllFormats ? "ALL formats (glb, fbx, obj, usdz)" : "GLB only")}");
+
+            // Debug logging to verify texture parameters + model
+            Debug.Log($"[MeshyClient] Creating task with: " +
+                      $"should_texture={shouldTexture}, enable_pbr={enablePbr}, should_remesh={shouldRemesh}, " +
+                      $"ai_model={(aiModel ?? "API default (latest/Meshy-6)")}");
+            Debug.Log($"[MeshyClient] Requesting formats: " +
+                      $"{(requestAllFormats ? "ALL formats (glb, fbx, obj, usdz)" : "GLB only")}");
             Debug.Log($"[MeshyClient] Request payload: {json}");
 
             using (var req = new UnityWebRequest($"{BaseUrl}/image-to-3d", "POST"))
@@ -111,7 +136,10 @@ namespace ARMeshyDemo.Net
                 }
 
                 CreateRes res = null;
-                try { res = JsonUtility.FromJson<CreateRes>(req.downloadHandler.text); }
+                try
+                {
+                    res = JsonUtility.FromJson<CreateRes>(req.downloadHandler.text);
+                }
                 catch (Exception e)
                 {
                     onErr?.Invoke("Ugyldigt JSON-svar: " + e);
@@ -129,9 +157,10 @@ namespace ARMeshyDemo.Net
             }
         }
 
-        public IEnumerator GetImageTo3DTask(string taskId,
-                                            Action<ImageTo3DTask> onOk,
-                                            Action<string> onErr)
+        public IEnumerator GetImageTo3DTask(
+            string taskId,
+            Action<ImageTo3DTask> onOk,
+            Action<string> onErr)
         {
             var key = ApiKey;
             if (string.IsNullOrEmpty(key))
@@ -153,7 +182,10 @@ namespace ARMeshyDemo.Net
                 }
 
                 ImageTo3DTask task = null;
-                try { task = JsonUtility.FromJson<ImageTo3DTask>(req.downloadHandler.text); }
+                try
+                {
+                    task = JsonUtility.FromJson<ImageTo3DTask>(req.downloadHandler.text);
+                }
                 catch (Exception e)
                 {
                     onErr?.Invoke("Ugyldigt JSON-svar: " + e);
@@ -168,13 +200,13 @@ namespace ARMeshyDemo.Net
         /// Poller task til SUCCEEDED/FAILED. Returnerer det sidste task-objekt.
         /// </summary>
         public IEnumerator PollImageTo3D(
-     string taskId,
-     float intervalSec,
-     Action<ImageTo3DTask> onProgress,
-     Action<ImageTo3DTask> onDone,
-     Action<string> onErr,
-     float timeoutSec = 600f,
-     System.Func<bool> shouldCancel = null)
+            string taskId,
+            float intervalSec,
+            Action<ImageTo3DTask> onProgress,
+            Action<ImageTo3DTask> onDone,
+            Action<string> onErr,
+            float timeoutSec = 600f,
+            Func<bool> shouldCancel = null)
         {
             float t = 0f;
             ImageTo3DTask last = null;
@@ -187,7 +219,8 @@ namespace ARMeshyDemo.Net
                     yield break;
                 }
 
-                yield return GetImageTo3DTask(taskId,
+                yield return GetImageTo3DTask(
+                    taskId,
                     onOk: task =>
                     {
                         last = task;
@@ -204,24 +237,29 @@ namespace ARMeshyDemo.Net
                     var s = last.status ?? "";
                     if (s.Equals("SUCCEEDED", StringComparison.OrdinalIgnoreCase))
                     {
-                        // ? Log all available URLs
-                        Debug.Log($"[MeshyClient] Task SUCCEEDED!");
+                        // Log all available URLs
+                        Debug.Log("[MeshyClient] Task SUCCEEDED!");
                         if (last.model_urls != null)
                         {
-                            Debug.Log($"[MeshyClient] Available URLs:");
-                            if (!string.IsNullOrEmpty(last.model_urls.glb)) Debug.Log($"  GLB: {last.model_urls.glb}");
-                            if (!string.IsNullOrEmpty(last.model_urls.fbx)) Debug.Log($"  FBX: {last.model_urls.fbx}");
-                            if (!string.IsNullOrEmpty(last.model_urls.obj)) Debug.Log($"  OBJ: {last.model_urls.obj}");
-                            if (!string.IsNullOrEmpty(last.model_urls.usdz)) Debug.Log($"  USDZ: {last.model_urls.usdz}");
+                            Debug.Log("[MeshyClient] Available URLs:");
+                            if (!string.IsNullOrEmpty(last.model_urls.glb))
+                                Debug.Log($"  GLB: {last.model_urls.glb}");
+                            if (!string.IsNullOrEmpty(last.model_urls.fbx))
+                                Debug.Log($"  FBX: {last.model_urls.fbx}");
+                            if (!string.IsNullOrEmpty(last.model_urls.obj))
+                                Debug.Log($"  OBJ: {last.model_urls.obj}");
+                            if (!string.IsNullOrEmpty(last.model_urls.usdz))
+                                Debug.Log($"  USDZ: {last.model_urls.usdz}");
                         }
                         else
                         {
                             Debug.LogWarning("[MeshyClient] ?? No model_urls in response!");
                         }
-                        
+
                         onDone?.Invoke(last);
                         yield break;
                     }
+
                     if (s.Equals("FAILED", StringComparison.OrdinalIgnoreCase))
                     {
                         onErr?.Invoke("Task FAILED: " + (last.failure_reason ?? "Unknown"));
@@ -230,13 +268,11 @@ namespace ARMeshyDemo.Net
                 }
 
                 float wait = intervalSec;
-                // (Valgfrit) backoff lidt ved 0% i starten
                 yield return new WaitForSeconds(wait);
                 t += wait;
             }
 
             onErr?.Invoke("Timeout while waiting for Meshy task.");
         }
-
     }
 }

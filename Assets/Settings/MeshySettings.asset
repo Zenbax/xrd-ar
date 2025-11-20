@@ -13,3 +13,4 @@ MonoBehaviour:
   m_Name: MeshySettings
   m_EditorClassIdentifier: Assembly-CSharp::ARMeshyDemo.Config.MeshySettings
   apiKey: msy_F2B3CtfRFRgJeqdmKiU5b2IG4NavTnc3kQrg
+  defaultAiModel: 3

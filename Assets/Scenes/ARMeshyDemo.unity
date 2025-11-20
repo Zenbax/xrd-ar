@@ -2371,7 +2371,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ARMeshyDemo.Net.GltfLoader
   uniformScale: 1
   setLayer: -1
-  remapMaterials: 1
+  remapMaterials: 0
   litPolicy: 1
   unlitIfNoTextures: 0
   autoRemapOnPink: 1
@@ -3368,7 +3368,7 @@ MonoBehaviour:
   widthScaleMultiplier: 1
   localPositionOffset: {x: 0, y: 0, z: 0}
   localEulerOffset: {x: -90, y: 0, z: 0}
-  hideWhenNotTracking: 1
+  hideWhenNotTracking: 0
   lockToFirstSeen: 1
   lostReleaseSeconds: 1
   verboseLogs: 1

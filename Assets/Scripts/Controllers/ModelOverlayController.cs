@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.XR.ARFoundation;
 using UnityEngine.XR.ARSubsystems;
 using ARMeshyDemo.Controllers;
-using Debug = UnityEngine.Debug; // Brug Unity Debug
+using Debug = UnityEngine.Debug;
 
 namespace ARMeshyDemo.AR
 {
@@ -15,24 +15,33 @@ namespace ARMeshyDemo.AR
         [SerializeField] private GenerateController generateController;
 
         [Header("Placement")]
-        [Tooltip("Skaler modellen så dens bredde matcher det trackede billedes bredde (meter).")]
+        [Tooltip("Match model width to tracked image width (in meters).")]
         [SerializeField] private bool matchTrackedWidth = true;
+
+        [Tooltip("Extra multiplier on top of width-matching scale.")]
         [SerializeField] private float widthScaleMultiplier = 1f;
-        [SerializeField] private Vector3 localPositionOffset = Vector3.zero;
-        [Tooltip("Typisk skal GLB'er roteres -90 i X for at stå op på et AR-billede (som ligger i X-Y).")]
-        [SerializeField] private Vector3 localEulerOffset = new Vector3(-90, 0, 0);
+
+        [Tooltip("Offset from tracked image origin (local space). Y > 0 lifts the model up off the card.")]
+        [SerializeField] private Vector3 localPositionOffset = new Vector3(0f, 0.02f, 0f);
+
+        [Tooltip("Extra rotation in local space. Use this to make the model stand up and face the camera.")]
+        [SerializeField] private Vector3 localEulerOffset = new Vector3(90f, 0f, 0f);
+
         [SerializeField] private bool hideWhenNotTracking = true;
 
         [Header("Locking")]
-        [Tooltip("Lås til første trackede instans, så modellen ikke hopper mellem flere kopier af samme billede.")]
+        [Tooltip("Lock to the first tracked instance so the model does not jump between identical images.")]
         [SerializeField] private bool lockToFirstSeen = true;
+
         [SerializeField] private float lostReleaseSeconds = 1.0f;
 
         [Header("Debug")]
         [SerializeField] private bool verboseLogs = true;
-        [Tooltip("Hvis true: forsøger at re-attache når modellen bliver loadet, selv hvis tracked event kom før.")]
+
+        [Tooltip("If true, try to attach immediately when the model is loaded, even if the tracked event came earlier.")]
         [SerializeField] private bool tryAttachImmediatelyOnModelLoaded = true;
-        [Tooltip("Vis gizmos på det aktuelle attach-punkt (kun i Editor).")]
+
+        [Tooltip("Draw gizmos at the attach point (Editor only).")]
         [SerializeField] private bool drawAttachGizmos = false;
 
         // Runtime state
@@ -74,7 +83,7 @@ namespace ARMeshyDemo.AR
 
         private void Update()
         {
-            // Hent model reference hvis vi ikke har gjort det endnu.
+            // Grab model reference once it exists
             if (_model == null && generateController != null)
             {
                 var m = generateController.GetLoadedModel();
@@ -88,10 +97,12 @@ namespace ARMeshyDemo.AR
                 }
             }
 
+            // Handle lock + lost tracking timer
             if (lockToFirstSeen && _lockedTrackable.HasValue)
             {
                 var img = FindTrackedImageById(_lockedTrackable.Value);
                 bool good = img != null && img.trackingState == TrackingState.Tracking;
+
                 if (!good)
                 {
                     _lostTimer += Time.deltaTime;
@@ -118,8 +129,8 @@ namespace ARMeshyDemo.AR
         }
 
         /// <summary>
-        /// Forsøg at attache modellen til det aktuelt trackede referencebillede (hvis i view).
-        /// Kaldes bl.a. når modellen er blevet loadet, eller når brugeren kommer tilbage på billedet.
+        /// Try to attach the model to the currently tracked reference image (if any).
+        /// Called when the model finishes loading, or when we come back to the image.
         /// </summary>
         public void TryAttachToCurrentlyTracked()
         {
@@ -173,7 +184,7 @@ namespace ARMeshyDemo.AR
 
             if (lockToFirstSeen && _lockedTrackable.HasValue && img.trackableId != _lockedTrackable.Value)
             {
-                // Allerede låst til en anden instans.
+                // Already locked to a different instance
                 return;
             }
 
@@ -192,7 +203,7 @@ namespace ARMeshyDemo.AR
                 }
             }
 
-            // Beregn bounds én gang pr. session (når vi får modellen første gang)
+            // Compute bounds once per session
             if (!_haveBounds)
             {
                 _modelBounds = CalculateBoundsSafe(_model);
@@ -200,31 +211,35 @@ namespace ARMeshyDemo.AR
                 Log($"Model bounds = {_modelBounds.size}");
             }
 
-            // Parent til det trackede billede, så pos/rot følger billedet
+            // Parent to the tracked image so pos/rot follow it
             _model.transform.SetParent(img.transform, worldPositionStays: false);
+
+            // Reset local transform before applying our offsets
             _model.transform.localPosition = Vector3.zero;
             _model.transform.localRotation = Quaternion.identity;
+            _model.transform.localScale = Vector3.one;
 
-            // Skaler så bredden matcher det trackede billedes bredde i meter
+            // Width-based scaling (optional)
             if (_haveBounds && matchTrackedWidth)
             {
-                float imageWidth = Mathf.Max(1e-4f, img.size.x); // meter
+                float imageWidth = Mathf.Max(1e-4f, img.size.x);       // meters
                 float modelWidth = Mathf.Max(1e-4f, _modelBounds.size.x);
+
                 float scale = (imageWidth / modelWidth) * Mathf.Max(1e-4f, widthScaleMultiplier);
                 _model.transform.localScale = Vector3.one * scale;
             }
             else
             {
-                // Sikr at vi ikke har nulskala
+                // Ensure non-zero scale
                 var s = _model.transform.localScale;
                 if (Mathf.Abs(s.x) < 1e-4f) _model.transform.localScale = Vector3.one * 0.1f;
             }
 
-            // Offsets (fine-tuning)
+            // Apply position + rotation offsets
             _model.transform.localPosition += localPositionOffset;
             _model.transform.localRotation *= Quaternion.Euler(localEulerOffset);
 
-            // Vis ALTID ved attach (for at undgå usynlig model)
+            // Always show when attached
             _model.SetActive(true);
 
             if (lockToFirstSeen)
@@ -243,7 +258,7 @@ namespace ARMeshyDemo.AR
             var renderers = go.GetComponentsInChildren<Renderer>(includeInactive: true);
             if (renderers == null || renderers.Length == 0)
             {
-                // Fallback – hvis ingen renderer (fx tomt root), giv en lille størrelse
+                // Fallback – tiny bounds if no renderer
                 return new Bounds(Vector3.zero, Vector3.one * 0.001f);
             }
 
@@ -251,7 +266,7 @@ namespace ARMeshyDemo.AR
             for (int i = 1; i < renderers.Length; i++)
                 b.Encapsulate(renderers[i].bounds);
 
-            // Konverter world-bounds til "lokal" vurdering af størrelsen ift. nuværende skala
+            // Convert world-bounds to an approximate local size (assuming uniform scale)
             float uniformScale = Mathf.Abs(go.transform.lossyScale.x) < 1e-6f ? 1f : go.transform.lossyScale.x;
             if (uniformScale <= 1e-6f) uniformScale = 1f;
 
