@@ -1,5 +1,14 @@
 {
   "dependencies": {
+    "com.siccity.gltfutility": {
+      "version": "https://github.com/Siccity/GLTFUtility.git",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {
+        "com.unity.nuget.newtonsoft-json": "2.0.0"
+      },
+      "hash": "dfdc50830c201c53306fba4ab57ced763d2930c8"
+    },
     "com.unity.ai.assistant": {
       "version": "1.0.0-pre.12",
       "depth": 0,
@@ -45,25 +54,12 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.burst": {
-      "version": "1.8.24",
+      "version": "1.8.25",
       "depth": 1,
       "source": "registry",
       "dependencies": {
         "com.unity.mathematics": "1.2.1",
         "com.unity.modules.jsonserialize": "1.0.0"
-      },
-      "url": "https://packages.unity.com"
-    },
-    "com.unity.cloud.gltfast": {
-      "version": "6.14.0",
-      "depth": 0,
-      "source": "registry",
-      "dependencies": {
-        "com.unity.burst": "1.8.24",
-        "com.unity.collections": "1.2.4",
-        "com.unity.mathematics": "1.2.6",
-        "com.unity.modules.jsonserialize": "1.0.0",
-        "com.unity.modules.unitywebrequest": "1.0.0"
       },
       "url": "https://packages.unity.com"
     },
@@ -118,15 +114,15 @@
       "source": "builtin",
       "dependencies": {
         "com.unity.ide.visualstudio": "2.0.23",
-        "com.unity.ide.rider": "3.0.36",
+        "com.unity.ide.rider": "3.0.38",
         "com.unity.editorcoroutines": "1.0.0",
         "com.unity.performance.profile-analyzer": "1.2.3",
-        "com.unity.test-framework": "1.5.1",
+        "com.unity.test-framework": "1.6.0",
         "com.unity.testtools.codecoverage": "1.2.6"
       }
     },
     "com.unity.ide.rider": {
-      "version": "3.0.36",
+      "version": "3.0.38",
       "depth": 1,
       "source": "registry",
       "dependencies": {
@@ -153,7 +149,7 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.learn.iet-framework": {
-      "version": "5.0.1",
+      "version": "5.0.2",
       "depth": 0,
       "source": "registry",
       "dependencies": {
@@ -165,6 +161,13 @@
     "com.unity.mathematics": {
       "version": "1.3.2",
       "depth": 1,
+      "source": "registry",
+      "dependencies": {},
+      "url": "https://packages.unity.com"
+    },
+    "com.unity.mobile.android-logcat": {
+      "version": "1.4.6",
+      "depth": 0,
       "source": "registry",
       "dependencies": {},
       "url": "https://packages.unity.com"
@@ -284,7 +287,7 @@
       }
     },
     "com.unity.test-framework": {
-      "version": "1.5.1",
+      "version": "1.6.0",
       "depth": 1,
       "source": "builtin",
       "dependencies": {
@@ -294,7 +297,7 @@
       }
     },
     "com.unity.test-framework.performance": {
-      "version": "3.1.0",
+      "version": "3.2.0",
       "depth": 2,
       "source": "registry",
       "dependencies": {
@@ -386,24 +389,11 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.xr.core-utils": {
-      "version": "2.5.2",
+      "version": "2.5.3",
       "depth": 1,
       "source": "registry",
       "dependencies": {
         "com.unity.modules.xr": "1.0.0"
-      },
-      "url": "https://packages.unity.com"
-    },
-    "com.unity.xr.hands": {
-      "version": "1.5.1",
-      "depth": 0,
-      "source": "registry",
-      "dependencies": {
-        "com.unity.modules.xr": "1.0.0",
-        "com.unity.inputsystem": "1.3.0",
-        "com.unity.mathematics": "1.2.6",
-        "com.unity.xr.core-utils": "2.2.0",
-        "com.unity.xr.management": "4.0.1"
       },
       "url": "https://packages.unity.com"
     },
@@ -434,7 +424,7 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.xr.management": {
-      "version": "4.5.1",
+      "version": "4.5.2",
       "depth": 0,
       "source": "registry",
       "dependencies": {
@@ -443,6 +433,18 @@
         "com.unity.xr.core-utils": "2.2.1",
         "com.unity.modules.subsystems": "1.0.0",
         "com.unity.xr.legacyinputhelpers": "2.1.11"
+      },
+      "url": "https://packages.unity.com"
+    },
+    "com.unity.xr.openxr": {
+      "version": "1.15.1",
+      "depth": 0,
+      "source": "registry",
+      "dependencies": {
+        "com.unity.inputsystem": "1.6.3",
+        "com.unity.xr.core-utils": "2.3.0",
+        "com.unity.xr.management": "4.4.0",
+        "com.unity.xr.legacyinputhelpers": "2.1.2"
       },
       "url": "https://packages.unity.com"
     },

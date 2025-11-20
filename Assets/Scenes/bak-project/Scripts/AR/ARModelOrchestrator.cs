@@ -4,7 +4,7 @@ using System.IO;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.XR.ARFoundation;
-using GLTFast;
+using Siccity.GLTFUtility;
 using Scenes.bak_project.Scripts.AR;
 
 public class ARModelOrchestrator : MonoBehaviour
@@ -12,7 +12,7 @@ public class ARModelOrchestrator : MonoBehaviour
     [Header("Scene Refs")]
     public ARImageRuntimeManager arImageRuntime;
     public ARTrackedImageManager trackedImageManager;
-    public MeshyClient meshyClient;
+    public MeshyClient2 meshyClient2;
     public GameObject modelRoot;
     public GameObject loadingSpinnerPrefab;
 
@@ -46,9 +46,9 @@ public class ARModelOrchestrator : MonoBehaviour
 
     void Start()
     {
-        if (!arImageRuntime || !trackedImageManager || !meshyClient)
+        if (!arImageRuntime || !trackedImageManager || !meshyClient2)
         {
-            Debug.LogError("Assign ARImageRuntimeManager, ARTrackedImageManager, MeshyClient in Inspector.");
+            Debug.LogError("Assign ARImageRuntimeManager, ARTrackedImageManager, MeshyClient2 in Inspector.");
             enabled = false;
             return;
         }
@@ -137,7 +137,7 @@ public class ARModelOrchestrator : MonoBehaviour
         ShowSpinner(true);
 
         string taskId = null;
-        yield return meshyClient.CreateImageTo3DTask(
+        yield return meshyClient2.CreateImageTo3DTask(
             png,
             onTaskCreated: id => taskId = id,
             onError: err => { Debug.LogError(err); taskId = null; },
@@ -161,7 +161,7 @@ public class ARModelOrchestrator : MonoBehaviour
         }
 
         string glbUrl = null;
-        yield return meshyClient.PollTaskUntilReady(
+        yield return meshyClient2.PollTaskUntilReady(
             taskId,
             onGlbUrl: url => glbUrl = url,
             onError: err => { Debug.LogError(err); glbUrl = null; }
@@ -174,7 +174,7 @@ public class ARModelOrchestrator : MonoBehaviour
         }
 
         byte[] glbBytes = null;
-        yield return meshyClient.DownloadBytes(glbUrl, bytes => glbBytes = bytes, err => Debug.LogError(err));
+        yield return meshyClient2.DownloadBytes(glbUrl, bytes => glbBytes = bytes, err => Debug.LogError(err));
         if (glbBytes == null)
         {
             ShowSpinner(false);
@@ -204,56 +204,41 @@ public class ARModelOrchestrator : MonoBehaviour
     {
         ShowSpinner(true);
 
-        var gltf = new GltfImport();
+        // ✅ GLTFUtility: Load on MAIN THREAD (required for GraphicsSettings access)
+        // Background threading causes material/shader errors
+        GameObject loadedObject = null;
+        Exception loadException = null;
 
-        // ✅ glTFast 6.x: load by path (string) instead of FileStream
-        bool loaded;
+        try
         {
-            var loadTask = gltf.Load(glbPath); // or: gltf.Load(new System.Uri(glbPath))
-            while (!loadTask.IsCompleted) yield return null;
-#if UNITY_2021_3_OR_NEWER
-            loaded = loadTask.IsCompletedSuccessfully;
-#else
-        loaded = loadTask.Result;
-#endif
+            // This blocks the main thread but is safe and required by GLTFUtility
+            loadedObject = Importer.LoadFromFile(glbPath);
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"[ARModelOrchestrator] Failed to load GLB: {ex}");
+            loadException = ex;
         }
 
-        if (!loaded)
+        // ✅ Wait for textures to finish loading
+        yield return null;
+        yield return null;
+        yield return new WaitForSeconds(0.5f);
+
+        if (loadException != null || loadedObject == null)
         {
-            Debug.LogError("Failed to load GLB at: " + glbPath);
+            Debug.LogError($"[ARModelOrchestrator] Load failed: {loadException?.Message ?? "Unknown error"}");
             ShowSpinner(false);
             yield break;
         }
 
-        // ✅ 6.x instantiation API
-        var settings = new InstantiationSettings {
-            // Use the provided parent (anchor) instead of creating a separate root
-            SceneObjectCreation = SceneObjectCreation.Never
-        };
+        // Parent to anchor
+        loadedObject.transform.SetParent(anchor, false);
+        loadedObject.transform.localPosition = Vector3.zero;
+        loadedObject.transform.localRotation = Quaternion.identity;
+        loadedObject.transform.localScale = Vector3.one * 0.1f;
 
-        var instantiator = new GameObjectInstantiator(gltf, anchor, null, settings);
-        var instTask = gltf.InstantiateMainSceneAsync(instantiator);
-        while (!instTask.IsCompleted) yield return null;
-
-#if UNITY_2021_3_OR_NEWER
-        var instantiated = instTask.IsCompletedSuccessfully;
-#else
-    var instantiated = instTask.Result;
-#endif
-
-        if (!instantiated)
-        {
-            Debug.LogError("InstantiateMainSceneAsync failed");
-            ShowSpinner(false);
-            yield break;
-        }
-
-        // Root is already under 'anchor'
-        var sceneRoot = instantiator.SceneTransform != null ? instantiator.SceneTransform : anchor;
-        sceneRoot.localPosition = Vector3.zero;
-        sceneRoot.localRotation = Quaternion.identity;
-        sceneRoot.localScale = Vector3.one * 0.1f; // adjust to taste
-
+        Debug.Log($"[ARModelOrchestrator] Successfully loaded and attached model");
         ShowSpinner(false);
     }
 
@@ -327,7 +312,7 @@ public class ARModelOrchestrator : MonoBehaviour
         ShowSpinner(true);
 
         string taskId = null;
-        yield return meshyClient.CreateImageTo3DTask(
+        yield return meshyClient2.CreateImageTo3DTask(
             png,
             onTaskCreated: id => taskId = id,
             onError: err => { Debug.LogError(err); taskId = null; },
@@ -351,7 +336,7 @@ public class ARModelOrchestrator : MonoBehaviour
         }
 
         string glbUrl = null;
-        yield return meshyClient.PollTaskUntilReady(
+        yield return meshyClient2.PollTaskUntilReady(
             taskId,
             onGlbUrl: url => glbUrl = url,
             onError: err => { Debug.LogError(err); glbUrl = null; }
@@ -364,7 +349,7 @@ public class ARModelOrchestrator : MonoBehaviour
         }
 
         byte[] glbBytes = null;
-        yield return meshyClient.DownloadBytes(glbUrl, bytes => glbBytes = bytes, err => Debug.LogError(err));
+        yield return meshyClient2.DownloadBytes(glbUrl, bytes => glbBytes = bytes, err => Debug.LogError(err));
         if (glbBytes == null)
         {
             ShowSpinner(false);

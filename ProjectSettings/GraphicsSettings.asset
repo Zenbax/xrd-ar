@@ -34,11 +34,22 @@ GraphicsSettings:
   - {fileID: 10753, guid: 0000000000000000f000000000000000, type: 0}
   - {fileID: 10770, guid: 0000000000000000f000000000000000, type: 0}
   - {fileID: 10783, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 4800000, guid: b24c216c4acb0094c892a61dfbbb76b4, type: 3}
+  - {fileID: 4800000, guid: 8d2bb70cbf9db8d4da26e15b26e74248, type: 3}
+  - {fileID: 4800000, guid: 650dd9526735d5b46b79224bc6e94025, type: 3}
+  - {fileID: 4800000, guid: 057d08f5d01be134593d0fe0e40c1759, type: 3}
+  - {fileID: 4800000, guid: 7258d825fa9aac6439f21eb173b880c6, type: 3}
+  - {fileID: 4800000, guid: d28fc76bfd3057e4c8f1c6f0b91590c8, type: 3}
+  - {fileID: 4800000, guid: 475158e3052e5c4488fa32f8df9d7be7, type: 3}
+  - {fileID: -6465566751694194690, guid: a08f3a1c845d57c4293a42c3202574a1, type: 3}
+  - {fileID: -6465566751694194690, guid: e6061ad897a8bd843b501d409aff8a22, type: 3}
+  - {fileID: -6465566751694194690, guid: bb6606ffd3868dd46a773758ff6901fc, type: 3}
+  - {fileID: -6465566751694194690, guid: 09512c1ba26fe804283ec6e09112e53c, type: 3}
   m_PreloadedShaders: []
   m_PreloadShadersBatchTimeLimit: -1
   m_SpritesDefaultMaterial: {fileID: 10754, guid: 0000000000000000f000000000000000,
     type: 0}
-  m_CustomRenderPipeline: {fileID: 11400000, guid: d0e2fc18fe036412f8223b3b3d9ad574,
+  m_CustomRenderPipeline: {fileID: 11400000, guid: 35c0c70fb56fac6458f32e58269705fd,
     type: 2}
   m_TransparencySortMode: 0
   m_TransparencySortAxis: {x: 0, y: 0, z: 1}
@@ -66,5 +77,5 @@ GraphicsSettings:
   m_LightsUseColorTemperature: 1
   m_LogWhenShaderIsCompiled: 0
   m_LightProbeOutsideHullStrategy: 0
-  m_CameraRelativeLightCulling: 0
+  m_CameraRelativeLightCulling: 1
   m_CameraRelativeShadowCulling: 0
